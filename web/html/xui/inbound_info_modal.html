@@ -185,6 +185,25 @@
             <a-tag>↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
           </td>
         </tr>
+        <tr v-if="app.ipLimitEnable">
+          <td>{{ i18n "pages.inbounds.IPLimit" }}</td>
+          <td>
+            <a-tag>[[ infoModal.clientSettings.limitIp ]]</a-tag>
+          </td>
+        </tr>
+        <tr v-if="app.ipLimitEnable">
+          <td>{{ i18n "pages.inbounds.IPLimitlog" }}</td>
+          <td>
+            <a-tag>[[ infoModal.clientIps ]]</a-tag>
+            <a-icon type="sync" :spin="infoModal.refreshing" @click="infoModal.refreshIPs" style="margin: 0 5px;"></a-icon>
+            <a-tooltip :title="[[ dbInbound.address ]]">
+              <template slot="title">
+                <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
+              </template>
+              <a-icon type="delete" @click="infoModal.clearClientIps"></a-icon>
+            </a-tooltip>
+          </td>
+        </tr>
       </table>
       <table style="display: inline-table; margin-block: 10px; width: 100%; text-align: center;">
         <tr>
@@ -431,6 +450,8 @@
     isExpired: false,
     subLink: '',
     subJsonLink: '',
+    clientIps: '',
+    refreshing: false,
     show(dbInbound, index) {
       this.index = index;
       this.inbound = dbInbound.toInbound();
@@ -438,6 +459,9 @@
       this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
       this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+      if (app.ipLimitEnable && this.clientSettings.limitIp) {
+        this.refreshIPs();
+      }
       if (this.inbound.protocol == Protocols.WIREGUARD) {
         this.links = this.inbound.genInboundLinks(dbInbound.remark).split('\r\n')
       } else {
@@ -459,7 +483,31 @@
     },
     genSubJsonLink(subID) {
       return app.subSettings.subJsonURI + subID;
-    }
+    },
+    refreshIPs() {
+      this.refreshing = true;
+      HttpUtil.post(`/panel/inbound/clientIps/${this.clientStats.email}`).then((msg) => {
+        if (msg.success) {
+          try {
+            this.clientIps = JSON.parse(msg.obj).join(', ');
+          } catch (e) {
+            this.clientIps = msg.obj;
+          }
+        }
+      }).finally(() => {
+        this.refreshing = false;
+      });
+    },
+    async clearClientIps(email) {
+      try {
+        const msg = await HttpUtil.post(`/panel/inbound/clearClientIps/${email}`);
+        if (!msg.success) {
+          return;
+        }
+        this.clientIps = '';
+      } catch (error) {
+      }
+    },
   };
   const infoModalApp = new Vue({
     delimiters: ['[[', ']]'],
