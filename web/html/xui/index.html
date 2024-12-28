@@ -153,23 +153,19 @@
                 <a-card hoverable>
                   <a-row>
                     <a-col :span="12">
+                      <b>
+                        <a-icon type="global"></a-icon> IPv4:
+                      </b>
                       <a-tag>
-                        <a-tooltip>
-                          <a-icon type="global"></a-icon> IPv4
-                          <template slot="title">
-                            [[ status.publicIP.ipv4 ]]
-                          </template>
-                        </a-tooltip>
+                        [[ status.publicIP.ipv4 ]]
                       </a-tag>
                     </a-col>
                     <a-col :span="12">
+                      <b>
+                        <a-icon type="global"></a-icon> IPv6
+                      </b>
                       <a-tag>
-                        <a-tooltip>
-                          <a-icon type="global"></a-icon> IPv6
-                          <template slot="title">
-                            [[ status.publicIP.ipv6 ]]
-                          </template>
-                        </a-tooltip>
+                        [[ status.publicIP.ipv6 || '-' ]]
                       </a-tag>
                     </a-col>
                   </a-row>
