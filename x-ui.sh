@@ -1868,6 +1868,12 @@ if [[ $# > 0 ]]; then
     "uninstall")
         check_install 0 && uninstall 0
         ;;
+    "install_ip_limit")
+        check_install 0 && install_iplimit 0
+        ;;
+    "dev_install_ip_limit")
+        install_iplimit 0
+        ;;
     *) show_usage ;;
     esac
 else

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+    {{template "head" .}}
+    <style>
+        @media (min-width: 769px) {
+            .ant-layout-content {
+                margin: 24px 16px;
+            }
+
+            .ant-card-hoverable {
+                margin-inline: 0.3rem;
+            }
+
+            .ant-alert-error {
+                margin-inline: 0.3rem;
+            }
+        }
+
+        .ant-col-sm-24 {
+            margin-top: 10px;
+        }
+
+        .ant-card-dark h2 {
+            color: var(--dark-color-text-primary);
+        }
+    </style>
+
+    <body>
+        <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+            {{ template "commonSider" . }}
+            <a-layout id="content-layout">
+                <a-layout-content>
+                    <a-spin :spinning="spinning" :delay="200" :tip="loadingTip">
+                        <transition name="list" appear>
+                            <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                                     message='{{ i18n "secAlertTitle" }}'
+                                     color="red"
+                                     description='{{ i18n "secAlertSsl" }}'
+                                     show-icon closable>
+                            </a-alert>
+                        </transition>
+                        <a-space direction="vertical">
+                            <a-card hoverable style="margin-bottom: .5rem;">
+                                <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
+                                    <a-col :xs="24" :sm="10" style="padding: 4px;">
+                                        <a-space v-if="!installed" direction="horizontal">
+                                            <a-button type="primary" :disabled="spinInstallation"
+                                                      @click="installService">
+                                                {{ i18n "pages.fail2ban.installService" }}
+                                            </a-button>
+                                            <template v-if="spinInstallation">
+                                                <a-icon type="sync" :spin="true" style="margin: 0 5px;"></a-icon>
+                                                {{ i18n "pages.fail2ban.installationInProgress" }}
+                                            </template>
+
+                                        </a-space>
+                                        <a-space v-if="installed" direction="horizontal">
+                                            <a-button type="primary" :disabled="saveBtnDisable"
+                                                      @click="updateToggleService">{{ i18n "pages.fail2ban.save" }}
+                                            </a-button>
+
+                                            <a-button type="danger" :disabled="!saveBtnDisable" @click="restartService">
+                                                {{ i18n "pages.fail2ban.restart" }}
+                                            </a-button>
+                                            <a-popover v-if="restartResult"
+                                                       :overlay-class-name="themeSwitcher.currentTheme">
+                                                <span slot="title"
+                                                      style="font-size: 12pt">Error in running xray-core</span>
+                                                <template slot="content">
+                                                    <p style="max-width: 400px"
+                                                       v-for="line in restartResult.split('\n')">[[ line ]]</p>
+                                                </template>
+                                                <a-icon type="question-circle"></a-icon>
+                                            </a-popover>
+                                        </a-space>
+                                    </a-col>
+                                    <a-col :xs="24" :sm="14">
+                                        <template v-if="installed">
+                                            <div>
+                                                <a-back-top :target="() => document.getElementById('content-layout')"
+                                                            visibility-height="200"></a-back-top>
+                                                <a-alert type="warning" style="float: right; width: fit-content"
+                                                         message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
+                                                </a-alert>
+                                            </div>
+                                        </template>
+                                        <template v-if="!installed">
+                                            <div>
+                                                <a-back-top :target="() => document.getElementById('content-layout')"
+                                                            visibility-height="200"></a-back-top>
+                                                <a-alert type="error" style="float: right; width: fit-content"
+                                                         message='{{ i18n "pages.fail2ban.notInstalledDescription" }}' show-icon>
+                                                </a-alert>
+                                            </div>
+                                        </template>
+                                    </a-col>
+                                </a-row>
+                            </a-card>
+
+                            <a-tabs class="ant-card-dark-box-nohover" default-active-key="1" :class="themeSwitcher.currentTheme">
+
+                                <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.fail2ban.baseConfig"}}'>
+
+                                    <a-form-item label='{{ i18n "pages.fail2ban.bantime"}}'>
+                                        <a-input v-model="config.banTime"></a-input>
+                                    </a-form-item>
+
+                                </a-tab-pane>
+
+                                <a-tab-pane key="tpl-action" tab='{{ i18n "pages.fail2ban.action"}}'>
+
+                                    <a-form-item label='{{ i18n "pages.fail2ban.firewall"}}'>
+                                        <template>
+                                            <a-select style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme" v-model="config.firewall">
+                                                <a-select-option v-for="item in firewallsList" :value="item.value">
+                                                    <span v-text="item.name"></span>
+                                                </a-select-option>
+                                            </a-select>
+                                        </template>
+                                    </a-form-item>
+
+                                    <a-form-item label='{{ i18n "pages.fail2ban.firewall"}}'>
+                                        <a-textarea v-model="config.action"></a-textarea>
+                                    </a-form-item>
+
+                                </a-tab-pane>
+
+                            </a-tabs>
+
+                            <a-button type="secondary" :disabled="spinInstallation"
+                                      @click="loadConfig">
+                                <a-icon type="sync" style="margin: 0 5px;"></a-icon>
+                                Reload config
+                            </a-button>
+
+
+                        </a-space>
+                    </a-spin>
+                </a-layout-content>
+            </a-layout>
+        </a-layout>
+        {{template "js" .}}
+        <script src="{{ .base_path }}assets/clipboard/clipboard.min.js?{{ .cur_ver }}"></script>
+        {{template "component/themeSwitcher" .}}
+        {{template "textModal"}}
+        <script>
+            const State = {
+                Running: "running",
+                Stop: "stop",
+                Error: "error",
+            }
+            Object.freeze(State);
+
+
+            const app = new Vue({
+                delimiters: [ '[[', ']]' ],
+                el: '#app',
+                data: {
+                    siderDrawer,
+                    themeSwitcher,
+                    spinning: false,
+                    showAlert: false,
+                    saveBtnDisable: false,
+                    spinInstallation: false,
+                    loadingTip: '{{ i18n "loading"}}',
+                    restartResult: '',
+                    statusRequested: false,
+                    installed: false,
+                    config: {},
+                    firewallsList: [
+                        { name: 'iptables', value: 'iptables' },
+                        { name: 'ufw', value: 'ufw' },
+                        { name: 'nftables', value: 'nftables' },
+                    ],
+                },
+                methods: {
+                    loading(spinning, tip = '{{ i18n "loading"}}') {
+                        this.spinning = spinning;
+                        this.loadingTip = tip;
+                    },
+                    async getStatus() {
+                        try {
+                            const msg = await HttpUtil.post('/panel/fail2ban/');
+                            console.debug('Status', msg)
+                            if (msg.success) {
+                                this.statusRequested = true;
+                                this.installed = msg.obj.installed;
+                            }
+                        } catch (e) {
+                            console.error("Failed to get status:", e);
+                        }
+                        if (!this.installed) {
+                            await this.loadConfig();
+                        }
+                    },
+                    async loadConfig() {
+                        try {
+                            const msg = await HttpUtil.get('/panel/fail2ban/config/');
+                            console.debug('Config', msg)
+                            if (msg.success) {
+                                console.debug('Config', msg.obj)
+                                this.config = msg.obj;
+                            }
+                        } catch (e) {
+                            console.error("Failed to load config:", e);
+                        }
+                    },
+                    async updateToggleService() {
+                        await this.getStatus();
+                    },
+                    restartService() {
+
+                    },
+                    async installService() {
+                        this.spinInstallation = true;
+                        return
+                        try {
+                            const msg = await HttpUtil.post('/panel/fail2ban/install');
+                            if (msg.success) {
+                                alert('Installed');
+                                await this.getStatus();
+                            }
+                        } catch (e) {
+                            console.error("Failed to install service", e);
+                        } finally {
+                            this.spinInstallation = false;
+                        }
+                    },
+                },
+                async mounted() {
+                    if (window.location.protocol !== "https:") {
+                        this.showAlert = true;
+                    }
+                    await this.getStatus();
+                },
+            });
+        </script>
+    </body>
+</html>

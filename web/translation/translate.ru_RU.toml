@@ -454,6 +454,19 @@
 "originalUserPassIncorrect" = "Неверное имя пользователя или пароль"
 "userPassMustBeNotEmpty" = "Новое имя пользователя и новый пароль должны быть заполнены"
 
+
+[pages.fail2ban]
+"title" = "Настройки Fail2ban"
+"save" = "Сохранить"
+"restart" = "Перезапустить"
+"installService" = "Установить и настроить"
+"installationInProgress" = "Идёт установка сервиса..."
+"notInstalledDescription" = "Сервис Fail2ban не установлен. Перед использованием необходимо установить и нистроить"
+"baseConfig" = "Основные настройки"
+"action" = "Action"
+"bantime" = "Время блокировки"
+"firewall" = "Firewall"
+
 [tgbot]
 "keyboardClosed" = "❌ Закрыта настраиваемая клавиатура!"
 "noResult" = "❗ Нет результатов!"
